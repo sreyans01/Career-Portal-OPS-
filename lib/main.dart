@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:ops_portal/network/form_client.dart';
 
 void main() {
   runApp(const MyApp());
@@ -62,10 +64,21 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
+        onPressed: getDataFromDummyApi,
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  void getDataFromDummyApi() async {
+    final dio = Dio(); // Provide a dio instance
+    //dio.options.headers["Demo-Header"] = "demo header";
+    var a = (await FormClient(dio).getTasks());
+    String? s = a.title;
+    print("KKKKKK "+"clicked!");
+    if (s!=null) {
+      print("KKKKKKKKK" + s);
+    }
   }
 }
