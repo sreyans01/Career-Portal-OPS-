@@ -1,0 +1,39 @@
+name: ops_portal
+description: A customized OPS Portal for Applicant tracking system, and HRMS.
+
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=2.18.5 <3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.2
+  flutter_bloc: ^8.1.1
+  retrofit: ^1.3.4+1
+  dio: ^3.0.10
+  built_value: ^7.1.0
+  json_annotation: ^3.1.0
+  logger: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^2.0.0
+  retrofit_generator: ^1.3.7+5
+  build_runner: ^1.10.0
+  json_serializable: ^3.5.0
+  built_value_generator: ^7.1.0
+  change_app_package_name: ^1.1.0
+
+
+flutter:
+
+  uses-material-design: true
