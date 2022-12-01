@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:ops_portal/retrofit/apiclient.dart';
 
 void main() {
   runApp(const MyApp());
