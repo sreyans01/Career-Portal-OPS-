@@ -27,6 +27,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+/.idea
 
 #  Visual Studio Code related
 .classpath
