@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
 
+/**
+ * Run these commands after making any changes in model files or client files:
+ * dart run build_runner build
+ * flutter pub run build_runner build
+ *
+ * To delete pub caches use the below command:
+ *
+ */
+
 void main() {
   runApp(const MyApp());
 }
