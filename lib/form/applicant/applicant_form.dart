@@ -1,8 +1,13 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_bloc/flutter_form_bloc.dart';
 import 'package:ops_portal/common/loading_dialog.dart';
 import 'package:ops_portal/common/success_screen.dart';
 import 'package:ops_portal/form/applicant/applicant_form_bloc.dart';
+import 'package:ops_portal/utils/utils.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ApplicantForm extends StatefulWidget {
   const ApplicantForm({Key? key}) : super(key: key);
@@ -10,7 +15,6 @@ class ApplicantForm extends StatefulWidget {
   @override
   _ApplicantFormState createState() => _ApplicantFormState();
 }
-
 
 class _ApplicantFormState extends State<ApplicantForm> {
   var _type = StepperType.horizontal;
@@ -55,13 +59,14 @@ class _ApplicantFormState extends State<ApplicantForm> {
               body: SafeArea(
                 child: FormBlocListener<ApplicantFormBloc, String, String>(
                   onSubmitting: (context, state) => LoadingDialog.show(context),
-                  onSubmissionFailed: (context, state) => LoadingDialog.hide(context),
+                  onSubmissionFailed: (context, state) =>
+                      LoadingDialog.hide(context),
                   onSuccess: (context, state) {
                     LoadingDialog.hide(context);
 
                     if (state.stepCompleted == state.lastStep) {
-                      Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (_) => const SuccessScreen()));
+                      Navigator.of(context).pushReplacement(MaterialPageRoute(
+                          builder: (_) => const SuccessScreen()));
                     }
                   },
                   onFailure: (context, state) {
@@ -73,7 +78,8 @@ class _ApplicantFormState extends State<ApplicantForm> {
                     physics: const ClampingScrollPhysics(),
                     stepsBuilder: (formBloc) {
                       return [
-                        _accountStep(formBloc!),
+                        _documentsStep(formBloc!),
+                        _accountStep(formBloc),
                         _personalStep(formBloc),
                         _socialStep(formBloc),
                       ];
@@ -91,9 +97,11 @@ class _ApplicantFormState extends State<ApplicantForm> {
   FormBlocStep _accountStep(ApplicantFormBloc applicantFormBloc) {
     applicantFormBloc.whatsappCheck.stream.listen((event) {
       if (applicantFormBloc.whatsappCheck.state.value) {
-        applicantFormBloc.removeFieldBloc(fieldBloc: applicantFormBloc.whatsapp, step: 0);
+        applicantFormBloc.removeFieldBloc(
+            fieldBloc: applicantFormBloc.whatsapp, step: 0);
       } else {
-        applicantFormBloc.addFieldBloc(fieldBloc: applicantFormBloc.whatsapp, step: 0);
+        applicantFormBloc.addFieldBloc(
+            fieldBloc: applicantFormBloc.whatsapp, step: 0);
       }
     });
     return FormBlocStep(
@@ -136,9 +144,9 @@ class _ApplicantFormState extends State<ApplicantForm> {
             ),
           ),
           CheckboxFieldBlocBuilder(
-              booleanFieldBloc: applicantFormBloc.whatsappCheck,
-              padding: EdgeInsets.zero,
-              body: Text("Whatsapp no. is same as contact no."),
+            booleanFieldBloc: applicantFormBloc.whatsappCheck,
+            padding: EdgeInsets.zero,
+            body: Text("Whatsapp no. is same as contact no."),
           ),
           TextFieldBlocBuilder(
             textFieldBloc: applicantFormBloc.whatsapp,
@@ -148,6 +156,11 @@ class _ApplicantFormState extends State<ApplicantForm> {
               prefixIcon: Icon(Icons.whatsapp),
             ),
           ),
+          ElevatedButton(
+              onPressed: () {
+                applicantFormBloc.updateUserDummyData();
+              },
+              child: Text("Press Me!"))
         ],
       ),
     );
@@ -214,18 +227,18 @@ class _ApplicantFormState extends State<ApplicantForm> {
             ),
           ),
           TextFieldBlocBuilder(
-            textFieldBloc: applicantFormBloc.twitter,
+            textFieldBloc: applicantFormBloc.skype,
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(
-              labelText: 'Twitter',
+              labelText: 'Skype',
               prefixIcon: Icon(Icons.sentiment_satisfied),
             ),
           ),
           TextFieldBlocBuilder(
-            textFieldBloc: applicantFormBloc.facebook,
+            textFieldBloc: applicantFormBloc.linkedIn,
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(
-              labelText: 'Facebook',
+              labelText: 'LinkedIn',
               prefixIcon: Icon(Icons.sentiment_satisfied),
             ),
           ),
@@ -234,5 +247,132 @@ class _ApplicantFormState extends State<ApplicantForm> {
     );
   }
 
+  FormBlocStep _documentsStep(ApplicantFormBloc applicantFormBloc) {
+    return FormBlocStep(
+      title: const Text('Upload'),
+      content: Column(
+        children: <Widget>[
+          Visibility(
+            visible: false,
+            child: Column(
+              children: [
+                CheckboxFieldBlocBuilder(
+                  booleanFieldBloc: applicantFormBloc.hasUploadedProfileImage,
+                  padding: EdgeInsets.zero,
+                  body: Text(
+                      "This is just a helper checkbox for managing image upload state"),
+                ),
+                CheckboxFieldBlocBuilder(
+                  booleanFieldBloc: applicantFormBloc.hasUploadedResume,
+                  padding: EdgeInsets.zero,
+                  body: Text(
+                      "This is just a helper checkbox for managing resume upload state"),
+                ),
+                TextFieldBlocBuilder(
+                  textFieldBloc: applicantFormBloc.profileImage,
+                  enableOnlyWhenFormBlocCanSubmit: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Profile Image Url',
+                    prefixIcon: Icon(Icons.sentiment_satisfied),
+                  ),
+                ),
+                TextFieldBlocBuilder(
+                  textFieldBloc: applicantFormBloc.resume,
+                  enableOnlyWhenFormBlocCanSubmit: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Resume Url',
+                    prefixIcon: Icon(Icons.sentiment_satisfied),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: MediaQuery.of(context).size.width,
+            height: MediaQuery.of(context).size.width * 0.3,
+            constraints: BoxConstraints(
+              maxHeight: 300,
+              minHeight: 100,
+            ),
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+                shape: BoxShape.rectangle,
+                border: Border.all(width: 1, color: Colors.grey)),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.camera_alt),
+                  onPressed: () async {
+                    File? file = await applicantFormBloc.pickFile();
+                    if (file != null) {}
+                  },
+                  iconSize: 50,
+                ),
+                Text(
+                  "Select a Profile Photo",
+                  style: TextStyle(color: Colors.grey),
+                )
+              ],
+            ),
+          ),
+          Container(
+            width: MediaQuery.of(context).size.width,
+            height: MediaQuery.of(context).size.width * 0.3,
+            margin: EdgeInsets.fromLTRB(0, 50, 0, 20),
+            constraints: BoxConstraints(
+              maxHeight: 300,
+              minHeight: 100,
+            ),
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(8)),
+                shape: BoxShape.rectangle,
+                border: Border.all(width: 1, color: Colors.grey)),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.file_copy_outlined,
+                  ),
+                  onPressed: () async {
+                    var storagePermission =
+                        await RequestPermissions.requestPermission(
+                            [Permission.storage]);
+                    if (storagePermission[Permission.storage] == PermissionStatus.granted) {
+                      File? file = await applicantFormBloc.pickFile();
+                      if (file != null) {
+                        Log.i("JJJJJJJJ", " file found ${file.path}");
+                      }
+                    } else {
+                      openPermissionNotGrantedDialog();
+                    }
+                  },
+                  iconSize: 50,
+                ),
+                Text(
+                  "Upload your resume",
+                  style: TextStyle(color: Colors.grey),
+                )
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  void openPermissionNotGrantedDialog({String failureText = "Please grant permission to continue."}) {
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+        SnackBar(
+          content: Text(
+              failureText
+          ),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 3),
+        )
+    );
+  }
 }
