@@ -1,6 +1,12 @@
 //Made this to debug like android studio but a pro version which has no limit of characters
 import 'package:permission_handler/permission_handler.dart';
 
+/**
+ * A updated Log class to replicate similar to native android's log.
+ * Best part is that it leverages to add very long strings to be visible in the log just that it will separate out the messages after the defaultPrintLength = 1020
+ * @param tag - Log tag.
+ * @param object - Message or object passed as string to append in the log message.
+ */
 class Log {
   static void i(String tag, String object) async {
     int defaultPrintLength = 1020;
@@ -25,6 +31,9 @@ class Log {
   }
 }
 
+/**
+ * It can be used to write all the Permissions to be requested at one place.
+ */
 class RequestPermissions {
   static Future<Map<Permission, PermissionStatus>> requestPermission(List<Permission> permissions) async {
     Map<Permission, PermissionStatus> statuses = await permissions.request();
