@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 /**
+ * This is just a temporary file to demonstrate the basic demo page of Flutter
+ * Can Delete this if not needed, but make sure to copy the instructions mentioned below.
+ */
+/**
  * Run these commands after making any changes in model files or client files:
  * dart run build_runner build
  * flutter pub run build_runner build

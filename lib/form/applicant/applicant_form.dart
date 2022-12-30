@@ -1,11 +1,13 @@
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_form_bloc/flutter_form_bloc.dart';
 import 'package:ops_portal/common/loading_dialog.dart';
 import 'package:ops_portal/common/success_screen.dart';
 import 'package:ops_portal/form/applicant/applicant_form_bloc.dart';
+import 'package:ops_portal/form/fileupload/file_upload_bloc.dart';
+import 'package:ops_portal/form/fileupload/file_upload_event.dart';
+import 'package:ops_portal/form/fileupload/file_upload_event_state.dart';
 import 'package:ops_portal/utils/utils.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -98,10 +100,10 @@ class _ApplicantFormState extends State<ApplicantForm> {
     applicantFormBloc.whatsappCheck.stream.listen((event) {
       if (applicantFormBloc.whatsappCheck.state.value) {
         applicantFormBloc.removeFieldBloc(
-            fieldBloc: applicantFormBloc.whatsapp, step: 0);
+            fieldBloc: applicantFormBloc.whatsapp, step: 1);
       } else {
         applicantFormBloc.addFieldBloc(
-            fieldBloc: applicantFormBloc.whatsapp, step: 0);
+            fieldBloc: applicantFormBloc.whatsapp, step: 1);
       }
     });
     return FormBlocStep(
@@ -156,11 +158,6 @@ class _ApplicantFormState extends State<ApplicantForm> {
               prefixIcon: Icon(Icons.whatsapp),
             ),
           ),
-          ElevatedButton(
-              onPressed: () {
-                applicantFormBloc.updateUserDummyData();
-              },
-              child: Text("Press Me!"))
         ],
       ),
     );
@@ -252,127 +249,173 @@ class _ApplicantFormState extends State<ApplicantForm> {
       title: const Text('Upload'),
       content: Column(
         children: <Widget>[
-          Visibility(
-            visible: false,
-            child: Column(
-              children: [
-                CheckboxFieldBlocBuilder(
-                  booleanFieldBloc: applicantFormBloc.hasUploadedProfileImage,
-                  padding: EdgeInsets.zero,
-                  body: Text(
-                      "This is just a helper checkbox for managing image upload state"),
-                ),
-                CheckboxFieldBlocBuilder(
-                  booleanFieldBloc: applicantFormBloc.hasUploadedResume,
-                  padding: EdgeInsets.zero,
-                  body: Text(
-                      "This is just a helper checkbox for managing resume upload state"),
-                ),
-                TextFieldBlocBuilder(
-                  textFieldBloc: applicantFormBloc.profileImage,
-                  enableOnlyWhenFormBlocCanSubmit: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Profile Image Url',
-                    prefixIcon: Icon(Icons.sentiment_satisfied),
-                  ),
-                ),
-                TextFieldBlocBuilder(
-                  textFieldBloc: applicantFormBloc.resume,
-                  enableOnlyWhenFormBlocCanSubmit: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Resume Url',
-                    prefixIcon: Icon(Icons.sentiment_satisfied),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            width: MediaQuery.of(context).size.width,
-            height: MediaQuery.of(context).size.width * 0.3,
-            constraints: BoxConstraints(
-              maxHeight: 300,
-              minHeight: 100,
-            ),
-            decoration: BoxDecoration(
-                borderRadius: BorderRadius.all(Radius.circular(8)),
-                shape: BoxShape.rectangle,
-                border: Border.all(width: 1, color: Colors.grey)),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.camera_alt),
-                  onPressed: () async {
-                    File? file = await applicantFormBloc.pickFile();
-                    if (file != null) {}
-                  },
-                  iconSize: 50,
-                ),
-                Text(
-                  "Select a Profile Photo",
-                  style: TextStyle(color: Colors.grey),
-                )
-              ],
-            ),
-          ),
-          Container(
-            width: MediaQuery.of(context).size.width,
-            height: MediaQuery.of(context).size.width * 0.3,
-            margin: EdgeInsets.fromLTRB(0, 50, 0, 20),
-            constraints: BoxConstraints(
-              maxHeight: 300,
-              minHeight: 100,
-            ),
-            decoration: BoxDecoration(
-                borderRadius: BorderRadius.all(Radius.circular(8)),
-                shape: BoxShape.rectangle,
-                border: Border.all(width: 1, color: Colors.grey)),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: Icon(
-                    Icons.file_copy_outlined,
-                  ),
-                  onPressed: () async {
-                    var storagePermission =
-                        await RequestPermissions.requestPermission(
-                            [Permission.storage]);
-                    if (storagePermission[Permission.storage] == PermissionStatus.granted) {
-                      File? file = await applicantFormBloc.pickFile();
-                      if (file != null) {
-                        Log.i("JJJJJJJJ", " file found ${file.path}");
-                      }
-                    } else {
-                      openPermissionNotGrantedDialog();
-                    }
-                  },
-                  iconSize: 50,
-                ),
-                Text(
-                  "Upload your resume",
-                  style: TextStyle(color: Colors.grey),
-                )
-              ],
-            ),
-          ),
+          BlocProvider<FileUploadBloc>(
+              create: (context) => FileUploadBloc(),
+              child: BlocBuilder<FileUploadBloc, FileUploadState>(
+                builder: (context, fileUploadState) {
+                  var fileUploadBloc = BlocProvider.of<FileUploadBloc>(context);
+                  String? fileUrl = checkFileUploadState(fileUploadState);
+                  if (fileUrl != null)
+                    applicantFormBloc.profileImageUrl.changeValue(fileUrl);
+                  return Container(
+                    width: MediaQuery.of(context).size.width,
+                    height: MediaQuery.of(context).size.width * 0.3,
+                    constraints: BoxConstraints(
+                      maxHeight: 300,
+                      minHeight: 100,
+                    ),
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
+                        shape: BoxShape.rectangle,
+                        border: Border.all(width: 1, color: Colors.grey)),
+                    child: fileUploadState is FileUploadSuccessState
+                        ? Image.network(fileUploadState.url)
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.camera_alt),
+                                onPressed: () async {
+                                  handleFilePicking(
+                                      fileUploadBloc, fileUploadState);
+                                },
+                                iconSize: 50,
+                              ),
+                              Text(
+                                "Select a Profile Photo",
+                                style: TextStyle(color: Colors.grey),
+                              )
+                            ],
+                          ),
+                  );
+                },
+              )),
+          BlocProvider<FileUploadBloc>(
+              create: (context) => FileUploadBloc(),
+              child: BlocBuilder<FileUploadBloc, FileUploadState>(
+                builder: (context, fileUploadState) {
+                  var fileUploadBloc = BlocProvider.of<FileUploadBloc>(context);
+                  String? fileUrl = checkFileUploadState(fileUploadState);
+                  if (fileUrl != null)
+                    applicantFormBloc.resumeUrl.changeValue(fileUrl);
+                  return Container(
+                    width: MediaQuery.of(context).size.width,
+                    height: MediaQuery.of(context).size.width * 0.3,
+                    margin: EdgeInsets.fromLTRB(0, 50, 0, 20),
+                    constraints: BoxConstraints(
+                      maxHeight: 300,
+                      minHeight: 100,
+                    ),
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
+                        shape: BoxShape.rectangle,
+                        border: Border.all(width: 1, color: Colors.grey)),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            Icons.file_copy_outlined,
+                            color: fileUploadState is FileUploadSuccessState
+                                ? Colors.green
+                                : Colors.black,
+                          ),
+                          onPressed: () async {
+                            handleFilePicking(fileUploadBloc, fileUploadState);
+                          },
+                          iconSize: 50,
+                        ),
+                        Text(
+                          fileUploadState is FileUploadSuccessState
+                              ? "Resume uploaded ✅"
+                              : "Upload your resume",
+                          style: TextStyle(
+                              color: fileUploadState is FileUploadSuccessState
+                                  ? Colors.blue
+                                  : Colors.grey),
+                        )
+                      ],
+                    ),
+                  );
+                },
+              )),
         ],
       ),
     );
   }
 
-  void openPermissionNotGrantedDialog({String failureText = "Please grant permission to continue."}) {
+  /**
+   * It initiates the file pick and before file pick process such as taking permissions for storage for mobile devices.
+   * @param fileUploadState - The current FileUploadState of the bloc.
+   * @param fileUploadBloc - The current FileUploadBloc object
+   * @param fileType - (Optional) Used for setting the filetype (if any) to only allow specific files such as image/video to be uploaded.
+   * @param allowMultiple - (Optional) By default, it is set to false. If multiple files need to be selected in upload, send it as true.
+   */
+  void handleFilePicking(
+      FileUploadBloc fileUploadBloc, FileUploadState fileUploadState,
+      {FileType fileType = FileType.any, bool allowMultiple = false}) async {
+    try {
+      var storagePermission =
+          await RequestPermissions.requestPermission([Permission.storage]);
+      if (storagePermission[Permission.storage] == PermissionStatus.granted) {
+        startFileUpload(fileUploadBloc, fileUploadState,
+            fileType: fileType, allowMultiple: allowMultiple);
+      } else {
+        openPermissionNotGrantedSnackbar(
+            failureText: "Please grant storage permission to continue");
+      }
+    } catch (e) {
+      if (e is MissingPluginException) {
+        startFileUpload(fileUploadBloc, fileUploadState,
+            fileType: fileType, allowMultiple: allowMultiple);
+      }
+    }
+  }
+  /**
+   * It initiates the file upload process.
+   * @param fileUploadState - The current FileUploadState of the bloc.
+   * @param fileUploadBloc - The current FileUploadBloc object
+   * @param fileType - (Optional) Used for setting the filetype (if any) to only allow specific files such as image/video to be uploaded.
+   * @param allowMultiple - (Optional) By default, it is set to false. If multiple files need to be selected in upload, send it as true.
+   */
+  void startFileUpload(
+      FileUploadBloc fileUploadBloc, FileUploadState fileUploadState,
+      {FileType fileType = FileType.any, bool allowMultiple = false}) async {
+    fileUploadBloc.add(
+        FileUploadStartEvent(fileType: fileType, allowMultiple: allowMultiple));
+  }
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-        SnackBar(
-          content: Text(
-              failureText
-          ),
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 3),
-        )
-    );
+  /**
+   * It checks the current state of File upload, and sends the file url on successful upload, or updates the ui accordingly on different states.
+   * @param fileUploadState - The current FileUploadState of the bloc.
+   */
+  String? checkFileUploadState(FileUploadState fileUploadState) {
+    if (fileUploadState is FileUploadNotSelectedState) {
+      openSnackBar(text: "Please choose a file to continue");
+    } else if (fileUploadState is FileUploadFailedState) {
+      openSnackBar(text: fileUploadState.errorMessage);
+    } else if (fileUploadState is FileUploadSuccessState) {
+      return fileUploadState.url;
+    }
+  }
+  /**
+   * Opens up a snackbar with the input text - This function is made separately to handle all the Permission denied dialogs
+   * @param failureText: (Optional) Parameter for setting up snackbar text.
+   */
+  void openPermissionNotGrantedSnackbar(
+      {String failureText = "Please grant permission to continue."}) {
+    openSnackBar(text: failureText);
+  }
+
+  /**
+   * Opens up a snackbar with the input text - useful for showing messages like 'Permission not granted', 'Details updated successfully', etc.
+   * @param text: (Optional) Parameter for setting up snackbar text.
+   */
+  void openSnackBar({String text = "Something went wrong!!"}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(text),
+      behavior: SnackBarBehavior.floating,
+      duration: Duration(seconds: 3),
+    ));
   }
 }
