@@ -74,12 +74,8 @@ class ApplicantFormBloc extends FormBloc<String, String> {
   void onSubmitting() async {
     switch (state.currentStep) {
       case 0:
-        if (profileImageUrl.value.isEmpty || resumeUrl.value.isEmpty) {
-          emitFailure(
-              failureResponse:
-                  "Please wait for file to be uploaded and try again!");
-        } else
-          emitSuccess();
+        //TODO: Add check for profileImage/resume uploaded or not. Have removed it due to api issues
+        emitSuccess();
         break;
       case 1:
         await Future.delayed(const Duration(milliseconds: 500));
