@@ -1,6 +1,8 @@
 # OPS Portal
 
+A Flutter based project of Career Portal and Operations written in Flutter (Dart) using Bloc Pattern. 
 
+The project is ongoing currently.
 
 ## Getting started
 
